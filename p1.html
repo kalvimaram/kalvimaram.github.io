@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Impact Card Generator - Kalvi Maram Foundation</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+  <!-- html-to-image CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --panel-bg: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-color: #38bdf8;
+      --accent-hover: #0284c7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* App Layout */
+    .app-container {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Controls Sidebar */
+    .sidebar {
+      width: 380px;
+      background-color: var(--panel-bg);
+      border-right: 1px solid var(--border-color);
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .sidebar h2 { font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .sidebar p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    
+    input[type="text"], input[type="date"], textarea, select {
+      width: 100%;
+      padding: 9px 12px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      cursor: pointer;
+    }
+
+    input[type="text"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .file-upload {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .file-upload input[type="file"] { display: none; }
+    .file-upload-btn {
+      display: block;
+      text-align: center;
+      padding: 9px;
+      background: #0f172a;
+      border: 1px dashed var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .file-upload-btn:hover { border-color: var(--accent-color); color: #fff; }
+
+    .btn-primary {
+      padding: 12px 16px;
+      background-color: var(--accent-color);
+      color: #0f172a;
+      font-weight: 700;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+      margin-top: auto;
+    }
+    .btn-primary:hover { background-color: var(--accent-hover); color: #fff; }
+
+    /* Canvas Preview Area */
+    .preview-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #020617;
+      padding: 40px;
+      overflow: auto;
+    }
+
+    /* Card Canvas Frame */
+    .card-canvas {
+      width: 500px;
+      height: 500px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+      border-radius: 0px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      position: relative;
+      box-sizing: border-box;
+      transition: width 0.3s, height 0.3s, background-color 0.3s;
+    }
+
+    /* Aspect Ratio Variants */
+    .card-canvas.ratio-1-1 { width: 500px; height: 500px; }
+    .card-canvas.ratio-9-16 { width: 360px; height: 640px; }
+    .card-canvas.ratio-16-9 { width: 640px; height: 360px; }
+
+    /* Theme Presets */
+    .card-canvas.theme-foundation-green {
+      background-color: #136232;
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-family: 'Inter', sans-serif;
+    }
+    .theme-foundation-green .author-title, .theme-foundation-green .card-date { color: #a7f3d0; }
+    .theme-foundation-green .impact-banner { background: rgba(0, 0, 0, 0.18); border-color: rgba(255, 255, 255, 0.15); }
+    .theme-foundation-green .foundation-footer { border-top: 1px solid rgba(255, 255, 255, 0.2); }
+    .theme-foundation-green .foundation-link { color: #6ee7b7; }
+    .theme-foundation-green .upi-text { color: #fde047; }
+
+    .card-canvas.theme-light {
+      background-color: #ffffff;
+      color: #1f2937;
+      border: 1px solid #e5e7eb;
+      font-family: 'Inter', sans-serif;
+    }
+    .theme-light .author-title, .theme-light .card-date { color: #6b7280; }
+    .theme-light .impact-banner { background: #f8fafc; border-color: #e2e8f0; color: #334155; }
+    .theme-light .foundation-footer { border-top: 1px solid #e5e7eb; }
+    .theme-light .upi-text { color: #047857; }
+
+    .card-canvas.theme-glass {
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+    }
+    .theme-glass .author-title, .theme-glass .card-date { color: #cbd5e1; }
+    .theme-glass .impact-banner { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+    .theme-glass .foundation-footer { border-top: 1px solid rgba(255,255,255,0.15); }
+    .theme-glass .upi-text { color: #38bdf8; }
+
+    .card-canvas.theme-dark {
+      background-color: #090d16;
+      border: 1px solid #1e293b;
+      color: #ffffff;
+      font-family: 'Space Mono', monospace;
+    }
+    .theme-dark .author-title { color: #38bdf8; }
+    .theme-dark .card-date { color: #64748b; }
+    .theme-dark .impact-banner { background: #020617; border-color: #1e293b; color: #94a3b8; }
+    .theme-dark .foundation-footer { border-top: 1px solid #1e293b; }
+    .theme-dark .upi-text { color: #34d399; }
+
+    /* Header Styling */
+    .card-header-container { display: flex; flex-direction: column; gap: 8px; }
+    .author-header { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2); background: #ffffff; }
+    .author-info { display: flex; flex-direction: column; }
+    
+    .author-name-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .author-name { font-size: 0.95rem; font-weight: 700; }
+    
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #38bdf8;
+      flex-shrink: 0;
+    }
+
+    .author-sub { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; }
+    .card-date { opacity: 0.8; font-weight: 500; }
+
+    /* Photo Frame Component */
+    .photo-container {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      margin: 10px 0;
+      border-radius: 0px;
+      overflow: hidden;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .school-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .geo-badge {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      padding: 8px 12px;
+      border-radius: 0px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    .geo-icon {
+      color: #ef4444;
+      flex-shrink: 0;
+    }
+
+    .geo-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Impact Mission Banner */
+    .impact-banner {
+      padding: 8px 12px;
+      border-radius: 0px;
+      border: 1px solid;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .impact-stats { font-weight: 700; }
+
+    /* Footer */
+    .foundation-footer { padding-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .foundation-details { display: flex; flex-direction: column; gap: 3px; }
+    .foundation-title { font-size: 0.82rem; font-weight: 700; letter-spacing: -0.01em; }
+    .foundation-link { font-size: 0.72rem; text-decoration: none; color: var(--accent-color); font-weight: 500; }
+    .upi-container { font-size: 0.7rem; font-weight: 600; margin-top: 2px; }
+    .upi-text { font-weight: 700; }
+    .qr-code-box { width: 56px; height: 56px; background: #ffffff; padding: 4px; border-radius: 0px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); flex-shrink: 0; }
+    .qr-code-box img { width: 100%; height: 100%; object-fit: contain; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Controls Sidebar -->
+    <div class="sidebar">
+      <div>
+        <h2>Photo Card Studio</h2>
+        <p>Kalvi Maram Foundation Impact Generator</p>
+      </div>
+
+      <div class="form-group">
+        <label>School Name & Location</label>
+        <input type="text" id="schoolNameInput" value="PUMS School, Vilamal, Thiruvarur, TN" placeholder="e.g. Govt Primary School, Madurai" />
+      </div>
+
+      <div class="form-group">
+        <label>Upload School Photo</label>
+        <div class="file-upload">
+          <label for="schoolPhotoInput" class="file-upload-btn" id="uploadPhotoLabel">Upload Photo</label>
+          <input type="file" id="schoolPhotoInput" accept="image/*" />
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Theme / Color</label>
+          <select id="themeSelect">
+            <option value="theme-foundation-green">Kalvi Green (#136232)</option>
+            <option value="theme-light">Light Minimal</option>
+            <option value="theme-glass">Glassmorphism</option>
+            <option value="theme-dark">Dark Neon</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Aspect Ratio</label>
+          <select id="ratioSelect">
+            <option value="ratio-1-1">1:1 Square</option>
+            <option value="ratio-9-16">9:16 Story</option>
+            <option value="ratio-16-9">16:9 Landscape</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Impact Stats Input Fields -->
+      <div class="grid-2">
+        <div class="form-group">
+          <label>No. of Schools</label>
+          <input type="text" id="schoolsInput" value="65" placeholder="e.g. 65" />
+        </div>
+        <div class="form-group">
+          <label>No. of Students</label>
+          <input type="text" id="studentsInput" value="7,200+" placeholder="e.g. 7,200+" />
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Posted By (Name)</label>
+          <input type="text" id="nameInput" value="Kalvi Maram Team" />
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="datePickerInput" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Author Sub-title</label>
+        <input type="text" id="titleInput" value="Field Operations" />
+      </div>
+
+      <div class="form-group">
+        <label>Coordinator Avatar (Optional Custom)</label>
+        <div class="file-upload">
+          <label for="avatarInput" class="file-upload-btn" id="uploadAvatarLabel">Change Avatar</label>
+          <input type="file" id="avatarInput" accept="image/*" />
+        </div>
+      </div>
+
+      <button id="exportBtn" class="btn-primary">Download Photo Card</button>
+    </div>
+
+    <!-- Preview Canvas Area -->
+    <div class="preview-stage">
+      <div id="cardCanvas" class="card-canvas theme-foundation-green ratio-1-1">
+        
+        <!-- TOP: Coordinator Meta -->
+        <div class="card-header-container">
+          <div class="author-header">
+            <img id="avatarDisplay" class="avatar" src="https://raw.githubusercontent.com/kalvimaram/kalvimaram.github.io/main/images/kalvimaramlogo.jpg" alt="Kalvi Maram Logo" crossorigin="anonymous" />
+            <div class="author-info">
+              <div class="author-name-row">
+                <span class="author-name" id="nameDisplay">Kalvi Maram Team</span>
+                <!-- Verified Blue Tick -->
+                <span class="verified-badge" title="Verified Organization">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.1 14.6l-3.8-3.8 1.41-1.41 2.39 2.38 6.09-6.09 1.41 1.41-7.5 7.51z"/>
+                  </svg>
+                </span>
+              </div>
+              <div class="author-sub">
+                <span class="author-title" id="titleDisplay">Field Operations</span>
+                <span id="dotSeparator">•</span>
+                <span class="card-date" id="dateDisplay"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER: School Photo with Geo Badge -->
+        <div class="photo-container">
+          <img id="schoolPhotoDisplay" class="school-photo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250' viewBox='0 0 400 250'%3E%3Crect width='100%25' height='100%25' fill='%231e293b'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-size='16' font-family='sans-serif'%3EUpload School Photo%3C/text%3E%3C/svg%3E" alt="School Photo" />
+          
+          <div class="geo-badge">
+            <svg class="geo-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            <span class="geo-text" id="schoolNameDisplay">PUMS School, Vilamal, Thiruvarur, TN</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Impact Banner -->
+        <div class="impact-banner">
+          Kalvi Maram Foundation supports <span class="impact-stats" id="schoolsDisplay">65</span> rural Tamil Nadu government schools with safe drinking water, weekly toilet cleaning, and health programs, benefiting <span class="impact-stats" id="studentsDisplay">7,200+</span> students.
+        </div>
+
+        <!-- BOTTOM FOOTER: Kalvi Maram Details & QR -->
+        <div class="foundation-footer">
+          <div class="foundation-details">
+            <span class="foundation-title">Kalvi Maram Foundation</span>
+            <span class="foundation-link">www.kalvimaram.org</span>
+            <div class="upi-container">
+              Donation UPI ID: <span class="upi-text">kalvimaram@sbi</span>
+            </div>
+          </div>
+
+          <div class="qr-code-box">
+            <img id="qrDisplay" src="https://www.kalvimaram.org/images/QRCode.png" alt="Donation QR Code" crossorigin="anonymous" />
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const cardCanvas = document.getElementById('cardCanvas');
+    const schoolNameInput = document.getElementById('schoolNameInput');
+    const nameInput = document.getElementById('nameInput');
+    const titleInput = document.getElementById('titleInput');
+    const datePickerInput = document.getElementById('datePickerInput');
+    const schoolsInput = document.getElementById('schoolsInput');
+    const studentsInput = document.getElementById('studentsInput');
+    const themeSelect = document.getElementById('themeSelect');
+    const ratioSelect = document.getElementById('ratioSelect');
+    
+    const avatarInput = document.getElementById('avatarInput');
+    const schoolPhotoInput = document.getElementById('schoolPhotoInput');
+
+    const schoolNameDisplay = document.getElementById('schoolNameDisplay');
+    const schoolPhotoDisplay = document.getElementById('schoolPhotoDisplay');
+    const nameDisplay = document.getElementById('nameDisplay');
+    const titleDisplay = document.getElementById('titleDisplay');
+    const dateDisplay = document.getElementById('dateDisplay');
+    const dotSeparator = document.getElementById('dotSeparator');
+    const schoolsDisplay = document.getElementById('schoolsDisplay');
+    const studentsDisplay = document.getElementById('studentsDisplay');
+    const avatarDisplay = document.getElementById('avatarDisplay');
+    const exportBtn = document.getElementById('exportBtn');
+
+    // Helper: Format YYYY-MM-DD string
+    function formatAbsoluteDate(dateString) {
+      if (!dateString) return '';
+      const [year, month, day] = dateString.split('-');
+      const dateObj = new Date(year, month - 1, day);
+      return dateObj.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+
+    // Update Date and Dot Separator Display
+    function updateDateDisplay(dateString) {
+      const formatted = formatAbsoluteDate(dateString);
+      dateDisplay.textContent = formatted;
+      
+      if (formatted && titleInput.value.trim() !== '') {
+        dotSeparator.style.display = 'inline';
+      } else {
+        dotSeparator.style.display = 'none';
+      }
+    }
+
+    // Default to today
+    const today = new Date().toISOString().split('T')[0];
+    datePickerInput.value = today;
+    updateDateDisplay(today);
+
+    // Event Listeners for Live Preview
+    schoolNameInput.addEventListener('input', (e) => schoolNameDisplay.textContent = e.target.value || 'School Name, Location');
+    nameInput.addEventListener('input', (e) => nameDisplay.textContent = e.target.value || 'Kalvi Maram Team');
+    
+    titleInput.addEventListener('input', (e) => {
+      titleDisplay.textContent = e.target.value;
+      dotSeparator.style.display = (dateDisplay.textContent && e.target.value.trim() !== '') ? 'inline' : 'none';
+    });
+    
+    schoolsInput.addEventListener('input', (e) => schoolsDisplay.textContent = e.target.value || '0');
+    studentsInput.addEventListener('input', (e) => studentsDisplay.textContent = e.target.value || '0');
+
+    datePickerInput.addEventListener('input', (e) => {
+      updateDateDisplay(e.target.value);
+    });
+
+    themeSelect.addEventListener('change', (e) => {
+      cardCanvas.className = `card-canvas ${e.target.value} ${ratioSelect.value}`;
+    });
+
+    ratioSelect.addEventListener('change', (e) => {
+      cardCanvas.className = `card-canvas ${themeSelect.value} ${e.target.value}`;
+    });
+
+    // School Photo Upload -> Base64
+    schoolPhotoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          schoolPhotoDisplay.src = evt.target.result;
+          document.getElementById('uploadPhotoLabel').textContent = file.name.substring(0, 12) + '...';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Profile Avatar Upload -> Base64
+    avatarInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          avatarDisplay.src = evt.target.result;
+          document.getElementById('uploadAvatarLabel').textContent = file.name.substring(0, 10) + '...';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // High-DPI Export using html-to-image
+    exportBtn.addEventListener('click', async () => {
+      try {
+        exportBtn.textContent = 'Generating...';
+        exportBtn.disabled = true;
+
+        await document.fonts.ready;
+
+        const dataUrl = await htmlToImage.toPng(cardCanvas, {
+          pixelRatio: 3,
+          cacheBust: true
+        });
+
+        const link = document.createElement('a');
+        link.download = `kalvi-maram-photo-card-${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error('Export error:', err);
+        alert('Failed to generate PNG export. If using external images, ensure CORS is enabled.');
+      } finally {
+        exportBtn.textContent = 'Download Photo Card';
+        exportBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
